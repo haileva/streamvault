@@ -7,10 +7,19 @@ export const pool = new Pool({
   connectionTimeoutMillis: 5000,
 });
 
+// Ensure all queries resolve against the streamvault schema
+pool.on('connect', (client) => {
+  client.query("SET search_path = streamvault, public").catch(() => {});
+});
+
 export async function initSchema(): Promise<void> {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    // Ensure schema exists
+    await client.query(`CREATE SCHEMA IF NOT EXISTS streamvault`);
+    await client.query(`SET search_path = streamvault, public`);
 
     // Users / wallets
     await client.query(`

@@ -15,15 +15,20 @@ export function getPool(): Pool {
                     process.env.DATABASE_URL.includes('sslmode=disable');
     _pool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      max: 3,                    // keep low for serverless cold starts
+      max: 3,
       idleTimeoutMillis: 10_000,
       connectionTimeoutMillis: 5_000,
       ssl: isLocal ? false : { rejectUnauthorized: false },
     });
-    // surface connection errors immediately instead of hiding them
+    // Set search_path = streamvault on every new connection
+    _pool.on('connect', (client) => {
+      client.query("SET search_path = streamvault, public").catch((e) =>
+        console.error('[db] search_path error', e.message),
+      );
+    });
     _pool.on('error', (err) => {
       console.error('[db] pool error', err.message);
-      _pool = null; // reset so next call re-creates
+      _pool = null;
     });
   }
   return _pool;
