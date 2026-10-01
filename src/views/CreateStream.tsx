@@ -239,7 +239,9 @@ export function CreateStream() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto xl:max-w-none xl:grid xl:grid-cols-[1fr_340px] xl:gap-8 xl:items-start">
+      {/* Left: form */}
+      <div>
       <h1 className="display text-2xl font-bold mb-1" style={{ color: 'var(--ink)' }}>
         Create a stream
       </h1>
@@ -463,6 +465,64 @@ export function CreateStream() {
           </button>
         )}
       </div>
+      </div>{/* end left col */}
+
+      {/* Right: sticky live preview panel — only shown at xl */}
+      <div className="hidden xl:block sticky top-24">
+        <div className="glass-card p-5 space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--subtle)' }}>
+            Stream Preview
+          </p>
+
+          {/* Rate */}
+          <div className="glass-inner p-4 text-center">
+            <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>Monthly rate</p>
+            <p className="display text-3xl font-bold tabular-nums" style={{ color: 'var(--ink)' }}>
+              {monthlyAmount || '0.00'}
+            </p>
+            <p className="text-xs mt-1" style={{ color: 'var(--subtle)' }}>USDC / month</p>
+          </div>
+
+          {/* Details */}
+          <div className="space-y-2.5">
+            <PreviewRow label="Duration" value={DURATION_OPTIONS.find(d => d.seconds === durationSeconds)?.label ?? `${durationSeconds / 86400}d`} />
+            <PreviewRow
+              label="Total deposit"
+              value={totalDeposit > 0n ? `${formatUSDC(totalDeposit)} USDC` : '—'}
+              highlight={insufficientBalance}
+            />
+            <PreviewRow
+              label="Per second"
+              value={ratePerSecond > 0n ? `${formatUSDC(ratePerSecond, 6)} USDC` : '—'}
+            />
+            <PreviewRow label="Category" value={category} />
+            <PreviewRow label="Balance" value={`${formattedBalance} USDC`} />
+          </div>
+
+          {/* Status pill */}
+          <div
+            className="text-center py-2 rounded-xl text-xs font-semibold"
+            style={
+              !isFormValid
+                ? { background: 'var(--surface-muted)', color: 'var(--subtle)' }
+                : insufficientBalance
+                ? { background: 'color-mix(in srgb, var(--danger) 10%, transparent)', color: 'var(--danger)' }
+                : { background: 'color-mix(in srgb, var(--success) 10%, transparent)', color: 'var(--success)' }
+            }
+          >
+            {!isFormValid ? 'Fill form to continue' : insufficientBalance ? 'Insufficient balance' : 'Ready to stream'}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span style={{ color: 'var(--subtle)' }}>{label}</span>
+      <span className="font-semibold" style={{ color: highlight ? 'var(--danger)' : 'var(--ink-2)' }}>{value}</span>
     </div>
   );
 }

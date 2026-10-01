@@ -39,9 +39,9 @@ export function Footer() {
       }}
     >
       {/* Top section */}
-      <div className="px-8 pt-10 pb-8 grid grid-cols-1 md:grid-cols-12 gap-10">
+      <div className="px-8 pt-10 pb-8 grid grid-cols-1 md:grid-cols-12 gap-8 xl:gap-10">
         {/* Brand col */}
-        <div className="md:col-span-4 space-y-5">
+        <div className="md:col-span-4 xl:col-span-4 space-y-5">
           <div className="flex items-center gap-2.5">
             <div
               className="flex items-center justify-center w-9 h-9 rounded-xl"
@@ -99,9 +99,6 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Spacer */}
-        <div className="hidden md:block md:col-span-1" />
-
         {/* Link columns */}
         {(
           [
@@ -110,7 +107,7 @@ export function Footer() {
             { title: 'Legal', items: LINKS.legal },
           ] as const
         ).map((col) => (
-          <div key={col.title} className="md:col-span-2 space-y-4">
+          <div key={col.title} className="md:col-span-2 xl:col-span-2 space-y-4">
             <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#3b82f6' }}>
               {col.title}
             </p>
@@ -138,7 +135,7 @@ export function Footer() {
         ))}
 
         {/* Chain status col */}
-        <div className="md:col-span-3 space-y-4">
+        <div className="md:col-span-3 xl:col-span-3 space-y-4">
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#3b82f6' }}>
             Network Status
           </p>

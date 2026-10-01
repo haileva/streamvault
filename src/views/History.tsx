@@ -48,14 +48,14 @@ export function History() {
       <div className="glass-card overflow-hidden">
         {/* Table header */}
         <div
-          className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-5 py-3 border-b text-xs font-semibold uppercase tracking-wider"
+          className="grid grid-cols-[120px_1fr_160px_120px_120px_110px] gap-4 px-6 py-3.5 border-b text-xs font-semibold uppercase tracking-wider"
           style={{ borderColor: 'var(--border)', color: 'var(--subtle)' }}
         >
           <span>Status</span>
           <span>Label</span>
-          <span>Recipient</span>
-          <span className="text-right">Amount</span>
-          <span className="text-right">Rate</span>
+          <span>Counterparty</span>
+          <span className="text-right">Deposited</span>
+          <span className="text-right">Rate / mo</span>
           <span className="text-right">Started</span>
         </div>
 
@@ -76,7 +76,7 @@ export function History() {
             {streams.map((s) => (
               <div
                 key={s.stream_id}
-                className="grid grid-cols-[auto_1fr_1fr_auto_auto_auto] gap-4 px-5 py-3.5 hover-surface transition-colors items-center"
+                className="grid grid-cols-[120px_1fr_160px_120px_120px_110px] gap-4 px-6 py-3.5 hover-surface transition-colors items-center"
               >
                 {/* Status */}
                 <div className="flex items-center gap-1.5">

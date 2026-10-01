@@ -71,9 +71,9 @@ export function Dashboard({ onNav }: DashboardProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Hero row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="space-y-8">
+      {/* Hero row — 4 stat cards, comfortable on all widths */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
         <StatCard
           title="USDC Balance"
           value={formattedBalance ? `${formattedBalance}` : '—'}
@@ -112,22 +112,27 @@ export function Dashboard({ onNav }: DashboardProps) {
 
       {/* Active streams preview */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="display font-bold text-lg" style={{ color: 'var(--ink)' }}>
-            Active Streams
-          </h2>
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="display font-bold text-lg" style={{ color: 'var(--ink)' }}>
+              Active Streams
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--subtle)' }}>
+              Real-time USDC flows
+            </p>
+          </div>
           <button
             onClick={() => onNav('streams')}
-            className="text-xs font-semibold"
-            style={{ color: 'var(--accent-hover)' }}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg hover-surface transition-colors"
+            style={{ color: 'var(--accent-hover)', border: '1px solid var(--border)' }}
           >
-            View all
+            View all →
           </button>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {[0, 1].map((i) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {[0, 1, 2].map((i) => (
               <div key={i} className="glass-card h-48 animate-pulse" />
             ))}
           </div>
@@ -139,7 +144,7 @@ export function Dashboard({ onNav }: DashboardProps) {
             onCta={() => onNav('create')}
           />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {activeStreams.map((s) => (
               <StreamCard key={s.stream_id} stream={s} onRefresh={() => {}} />
             ))}
@@ -149,20 +154,34 @@ export function Dashboard({ onNav }: DashboardProps) {
 
       {/* CTA cards */}
       {!loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <CtaCard
             title="Pay a contributor"
-            desc="Stream USDC per-second as payroll or a retainer. Set the rate and duration once."
+            desc="Stream USDC per-second as payroll or retainer."
             cta="New payroll stream"
             onClick={() => onNav('create')}
             color="var(--stream-blue)"
           />
           <CtaCard
             title="Bill subscribers"
-            desc="Create recurring subscription payments that flow continuously to your wallet."
+            desc="Recurring subscription payments, continuously."
             cta="New subscription stream"
             onClick={() => onNav('create')}
             color="var(--stream-purple)"
+          />
+          <CtaCard
+            title="Grant funding"
+            desc="Drip grant funds to contributors over time."
+            cta="New grant stream"
+            onClick={() => onNav('create')}
+            color="var(--stream-teal)"
+          />
+          <CtaCard
+            title="View history"
+            desc="See all past and completed streams."
+            cta="Open history"
+            onClick={() => onNav('history')}
+            color="var(--warn)"
           />
         </div>
       )}
@@ -178,29 +197,42 @@ function StatCard({
 }) {
   return (
     <motion.div
-      className="glass-card p-4"
+      className="glass-card p-5 lg:p-6 flex flex-col gap-4"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${color}18` }}>
+      {/* Top row: icon + title */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+          {title}
+        </span>
+        <div
+          className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: `color-mix(in srgb, ${color} 14%, transparent)` }}
+        >
           <span style={{ color }}>{icon}</span>
         </div>
-        <span className="text-xs font-medium" style={{ color: 'var(--muted)' }}>{title}</span>
       </div>
+
+      {/* Value */}
       {loading ? (
-        <div className="h-7 w-20 rounded-lg animate-pulse" style={{ background: 'var(--border)' }} />
+        <div className="h-8 w-24 rounded-lg animate-pulse" style={{ background: 'var(--border)' }} />
       ) : (
-        <>
+        <div>
           <div className="flex items-baseline gap-1.5">
-            <span className="display text-2xl font-bold tabular-nums" style={{ color: 'var(--ink)' }}>
+            <span className="display text-3xl font-bold tabular-nums leading-none" style={{ color: 'var(--ink)' }}>
               {value}
             </span>
             <span className="text-xs" style={{ color: 'var(--subtle)' }}>{unit}</span>
           </div>
-          {sub && <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{sub}</p>}
-        </>
+          {sub && (
+            <p className="text-xs mt-1.5" style={{ color: 'var(--muted)' }}>{sub}</p>
+          )}
+        </div>
       )}
+
+      {/* Color accent bar */}
+      <div className="h-0.5 rounded-full mt-auto" style={{ background: `color-mix(in srgb, ${color} 30%, transparent)` }} />
     </motion.div>
   );
 }

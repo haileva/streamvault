@@ -147,8 +147,8 @@ export function Streams({ onNav }: StreamsProps) {
 
       {/* Stream list */}
       {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="glass-card h-40 animate-pulse" />
           ))}
         </div>
@@ -173,7 +173,7 @@ export function Streams({ onNav }: StreamsProps) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((s) => (
               <StreamCard key={s.stream_id} stream={s} onRefresh={() => void fetchStreams()} />
             ))}

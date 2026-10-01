@@ -87,10 +87,12 @@ export function Settings() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <h1 className="display text-2xl font-bold mb-6" style={{ color: 'var(--ink)' }}>Settings</h1>
 
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-6 items-start">
+        {/* Left column: wallet + contract */}
+        <div className="space-y-5">
         {/* Wallet overview */}
         <section className="glass-card p-5">
           <div className="flex items-center gap-2 mb-4">
@@ -147,8 +149,9 @@ export function Settings() {
             </div>
           )}
         </section>
+        </div>{/* end left col */}
 
-        {/* Budget envelopes */}
+        {/* Right column: budget envelopes */}
         <section className="glass-card p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-sm" style={{ color: 'var(--ink)' }}>Budget Envelopes</h2>
