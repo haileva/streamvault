@@ -10,15 +10,19 @@ export function getPool(): Pool {
     );
   }
   if (!_pool) {
-    const isLocal = process.env.DATABASE_URL.includes('localhost') ||
-                    process.env.DATABASE_URL.includes('127.0.0.1') ||
-                    process.env.DATABASE_URL.includes('sslmode=disable');
+    // Disable SSL unless the connection string explicitly requests it.
+    // Many hosted Postgres providers (Neon, Supabase, Railway, etc.) use
+    // sslmode=require in the URL; plain URLs mean SSL is not available.
+    const url = process.env.DATABASE_URL;
+    const sslRequired = url.includes('sslmode=require') ||
+                        url.includes('sslmode=verify') ||
+                        url.includes('ssl=true');
     _pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      connectionString: url,
       max: 3,
       idleTimeoutMillis: 10_000,
       connectionTimeoutMillis: 5_000,
-      ssl: isLocal ? false : { rejectUnauthorized: false },
+      ssl: sslRequired ? { rejectUnauthorized: false } : false,
     });
     // Set search_path = streamvault on every new connection
     _pool.on('connect', (client) => {
