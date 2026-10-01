@@ -133,6 +133,7 @@ export function Footer() {
             </ul>
           </div>
         ))}
+      </div>{/* end grid */}
 
       {/* Divider */}
       <div className="mx-8" style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
