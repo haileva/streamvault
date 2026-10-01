@@ -22,6 +22,7 @@ import { Toaster } from 'sonner'
 import { config } from './config'
 import { ThemeProvider } from './lib/theme'
 import App from './App'
+import { Analytics } from '@vercel/analytics/react'
 import './index.css'
 
 const queryClient = new QueryClient()
@@ -74,6 +75,7 @@ createRoot(document.getElementById('root')!).render(
         <QueryClientProvider client={queryClient}>
           <ConnectKitProvider>
             <App />
+            <Analytics />
             <StudioWatermark />
             <Toaster position="top-center" />
           </ConnectKitProvider>
@@ -82,4 +84,6 @@ createRoot(document.getElementById('root')!).render(
     </ThemeProvider>
   </StrictMode>,
 )
+
+
 

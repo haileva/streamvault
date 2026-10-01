@@ -28,6 +28,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/pg": "^8.23.1",
+    "@vercel/analytics": "^2.0.1",
     "@web3icons/react": "^4.0.0",
     "clsx": "^2.1.1",
     "connectkit": "^1.9.2",
