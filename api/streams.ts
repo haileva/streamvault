@@ -7,7 +7,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
 
-  const pool = getPool();
+  let pool;
+  try { pool = getPool(); } catch (e) {
+    console.error('[streams] getPool failed:', (e as Error).message);
+    return res.status(503).json({ error: 'database not configured', detail: (e as Error).message });
+  }
 
   // ── GET /api/streams?address=&role=&status=&category=&limit=&offset= ──
   if (req.method === 'GET' && !req.query.streamId) {

@@ -8,10 +8,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'method not allowed' });
 
+  let pool;
+  try { pool = getPool(); } catch (e) {
+    return res.status(503).json({ error: 'database not configured', detail: (e as Error).message });
+  }
+
   const { address } = req.query as Record<string, string>;
   if (!address) return res.status(400).json({ error: 'address required' });
 
-  const pool = getPool();
   const addr = address.toLowerCase();
 
   try {
