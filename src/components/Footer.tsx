@@ -134,65 +134,6 @@ export function Footer() {
           </div>
         ))}
 
-        {/* Chain status col */}
-        <div className="md:col-span-3 xl:col-span-3 space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#3b82f6' }}>
-            Network Status
-          </p>
-          <div
-            className="rounded-xl p-4 space-y-3"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
-          >
-            {/* Live indicator */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: '#6b82a0' }}>Arc Testnet</span>
-              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#22c55e' }}>
-                <span className="relative flex h-2 w-2">
-                  <span
-                    className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-                    style={{ background: '#22c55e' }}
-                  />
-                  <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: '#22c55e' }} />
-                </span>
-                Live
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: '#6b82a0' }}>Gas token</span>
-              <span className="text-xs font-medium" style={{ color: '#93b4d8' }}>USDC</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: '#6b82a0' }}>Finality</span>
-              <span className="text-xs font-medium" style={{ color: '#93b4d8' }}>{'< 1s'}</span>
-            </div>
-
-            {/* Contract address */}
-            <div
-              className="pt-2 mt-1 border-t"
-              style={{ borderColor: 'rgba(255,255,255,0.07)' }}
-            >
-              <p className="text-xs mb-1.5" style={{ color: '#6b82a0' }}>Contract</p>
-              <a
-                href={EXPLORER_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mono flex items-center gap-1.5 text-xs transition-colors"
-                style={{ color: '#4d6a8a' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = '#60a5fa')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = '#4d6a8a')}
-              >
-                <span className="truncate">
-                  {CONTRACT.slice(0, 8)}…{CONTRACT.slice(-6)}
-                </span>
-                <ExternalLink size={11} className="flex-shrink-0" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Divider */}
       <div className="mx-8" style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
 
