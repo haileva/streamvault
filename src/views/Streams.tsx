@@ -11,9 +11,10 @@ const ROLES = ['all', 'sender', 'recipient'] as const;
 
 interface StreamsProps {
   onNav: (v: View) => void;
+  refreshToken: number;
 }
 
-export function Streams({ onNav }: StreamsProps) {
+export function Streams({ onNav, refreshToken }: StreamsProps) {
   const { address, isConnected } = useAccount();
   const [streams, setStreams] = useState<StreamRecord[]>([]);
   const [total, setTotal] = useState(0);
@@ -44,7 +45,9 @@ export function Streams({ onNav }: StreamsProps) {
     } finally {
       setLoading(false);
     }
-  }, [address, status, role, category, page]);
+  // refreshToken intentionally included: bumped after create/update to force re-fetch.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, status, role, category, page, refreshToken]);
 
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect

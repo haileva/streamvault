@@ -21,7 +21,16 @@ const DURATION_OPTIONS = [
 
 type Step = 'form' | 'approve' | 'create' | 'success';
 
-export function CreateStream() {
+interface CreateStreamProps {
+  /** Category pre-selected from the Dashboard CTA. When provided, used as the
+   *  initial value. The user can still change it manually — we never overwrite
+   *  their choice after mount. */
+  initialCategory?: string;
+  /** Called after the stream record is saved to the DB (post on-chain success). */
+  onSuccess?: () => void;
+}
+
+export function CreateStream({ initialCategory, onSuccess }: CreateStreamProps = {}) {
   const { address, chainId, isConnected } = useAccount();
   const { switchChain } = useSwitchChain();
 
@@ -30,7 +39,10 @@ export function CreateStream() {
   const [monthlyAmount, setMonthlyAmount] = useState('');
   const [durationSeconds, setDurationSeconds] = useState(2592000);
   const [label, setLabel] = useState('');
-  const [category, setCategory] = useState('payroll');
+  // Use initialCategory if provided (e.g. from Dashboard CTA), otherwise default to 'payroll'.
+  // This value is set ONCE at mount from the prop — subsequent renders of the
+  // same prop value do NOT override what the user has manually selected.
+  const [category, setCategory] = useState(() => initialCategory ?? 'payroll');
   const [newStreamId, setNewStreamId] = useState<string | null>(null);
   const [_approveTxHash, setApproveTxHash] = useState<`0x${string}` | undefined>();
   const [createTxHash, setCreateTxHash] = useState<`0x${string}` | undefined>();
@@ -113,6 +125,9 @@ export function CreateStream() {
       label: label || undefined,
       category,
       tx_hash_create: writeTxHash,
+    }).then(() => {
+      // Notify parent to bump refreshToken so Streams/Dashboard re-fetch.
+      onSuccess?.();
     }).catch(console.error);
     resetWrite();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -225,7 +240,10 @@ export function CreateStream() {
               setRecipient('');
               setMonthlyAmount('');
               setLabel('');
-              setCategory('payroll');
+              // Restore to the category this CreateStream was opened with, not a
+              // hardcoded default — preserves the Dashboard CTA context for
+              // users who want to create multiple streams of the same type.
+              setCategory(initialCategory ?? 'payroll');
               setNewStreamId(null);
             }}
             className="w-full py-3 rounded-2xl text-sm font-semibold text-white"

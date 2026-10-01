@@ -13,9 +13,11 @@ import type { View } from '@/components/Layout';
 
 interface DashboardProps {
   onNav: (v: View) => void;
+  onNavToCreate: (category?: string) => void;
+  refreshToken: number;
 }
 
-export function Dashboard({ onNav }: DashboardProps) {
+export function Dashboard({ onNav, onNavToCreate, refreshToken }: DashboardProps) {
   const { address, isConnected } = useAccount();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [activeStreams, setActiveStreams] = useState<StreamRecord[]>([]);
@@ -49,7 +51,9 @@ export function Dashboard({ onNav }: DashboardProps) {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [address]);
+  // refreshToken intentionally included: bumped after create/update to force re-fetch.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, refreshToken]);
 
   if (!isConnected) {
     return (
@@ -141,7 +145,7 @@ export function Dashboard({ onNav }: DashboardProps) {
             title="No active streams"
             description="Create your first stream to start continuous USDC payments."
             cta="Create Stream"
-            onCta={() => onNav('create')}
+            onCta={() => onNavToCreate()}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -159,21 +163,21 @@ export function Dashboard({ onNav }: DashboardProps) {
             title="Pay a contributor"
             desc="Stream USDC per-second as payroll or retainer."
             cta="New payroll stream"
-            onClick={() => onNav('create')}
+            onClick={() => onNavToCreate('payroll')}
             color="var(--stream-blue)"
           />
           <CtaCard
             title="Bill subscribers"
             desc="Recurring subscription payments, continuously."
             cta="New subscription stream"
-            onClick={() => onNav('create')}
+            onClick={() => onNavToCreate('subscription')}
             color="var(--stream-purple)"
           />
           <CtaCard
             title="Grant funding"
             desc="Drip grant funds to contributors over time."
             cta="New grant stream"
-            onClick={() => onNav('create')}
+            onClick={() => onNavToCreate('grant')}
             color="var(--stream-teal)"
           />
           <CtaCard
