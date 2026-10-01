@@ -286,7 +286,7 @@ export function Footer() {
             <div className="flex items-center gap-3 pt-1">
               {[
                 { href: 'https://github.com/haileva/streamvault', icon: <Github size={16} />, label: 'GitHub' },
-                { href: 'https://twitter.com', icon: <Twitter size={16} />, label: 'Twitter' },
+                { href: 'https://x.com/haile48866', icon: <Twitter size={16} />, label: 'X (Twitter)' },
               ].map((s) => (
                 <a
                   key={s.label}
