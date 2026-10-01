@@ -5,6 +5,18 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 export default defineConfig({
   plugins: [react(), nodePolyfills()],
+  build: {
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // Suppress noisy annotation warnings from third-party node_modules
+        if (
+          warning.code === 'INVALID_ANNOTATION' &&
+          warning.id?.includes('node_modules')
+        ) return;
+        warn(warning);
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
