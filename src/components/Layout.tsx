@@ -106,10 +106,10 @@ export function Layout({ view, onNav, children }: LayoutProps) {
           borderColor: 'var(--border)',
         }}
       >
-        {/* Logo / brand */}
+        {/* Logo / brand — exact same height as topbar h-16 so border lines up */}
         <div
-          className="flex items-center gap-3 px-3 py-4 border-b shrink-0 overflow-hidden"
-          style={{ borderColor: 'var(--border)', minHeight: '64px' }}
+          className="flex items-center gap-3 px-3 h-16 border-b shrink-0 overflow-hidden"
+          style={{ borderColor: 'var(--border)' }}
         >
           {/* Icon — always visible */}
           <div
