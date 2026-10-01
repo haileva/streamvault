@@ -76,7 +76,6 @@ createRoot(document.getElementById('root')!).render(
           <ConnectKitProvider>
             <App />
             <Analytics />
-            <StudioWatermark />
             <Toaster position="top-center" />
           </ConnectKitProvider>
         </QueryClientProvider>
