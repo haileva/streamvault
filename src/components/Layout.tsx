@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { ConnectKitButton } from 'connectkit';
 import {
   LayoutDashboard, ArrowRightLeft, Plus, History,
-  Settings, Droplets, Sun, Moon, PanelLeftClose, PanelLeftOpen,
+  Settings, Droplets, Sun, Moon, PanelLeftClose, PanelLeftOpen, BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Footer } from './Footer';
 import { useTheme } from '@/lib/theme';
 
-type View = 'dashboard' | 'streams' | 'create' | 'history' | 'settings';
+type View = 'dashboard' | 'streams' | 'create' | 'history' | 'settings' | 'docs';
 
 interface NavItem {
   id: View;
@@ -18,11 +18,12 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard',  icon: <LayoutDashboard size={18} />, description: 'Overview & stats' },
-  { id: 'streams',   label: 'Streams',    icon: <ArrowRightLeft size={18} />,  description: 'Manage streams'   },
-  { id: 'create',    label: 'New Stream', icon: <Plus size={18} />,             description: 'Start streaming'  },
-  { id: 'history',   label: 'History',    icon: <History size={18} />,          description: 'All transactions'  },
-  { id: 'settings',  label: 'Settings',   icon: <Settings size={18} />,         description: 'Wallet & budgets' },
+  { id: 'dashboard', label: 'Dashboard',  icon: <LayoutDashboard size={18} />, description: 'Overview & stats'  },
+  { id: 'streams',   label: 'Streams',    icon: <ArrowRightLeft size={18} />,  description: 'Manage streams'    },
+  { id: 'create',    label: 'New Stream', icon: <Plus size={18} />,            description: 'Start streaming'   },
+  { id: 'history',   label: 'History',    icon: <History size={18} />,         description: 'All transactions'  },
+  { id: 'settings',  label: 'Settings',   icon: <Settings size={18} />,        description: 'Wallet & budgets'  },
+  { id: 'docs',      label: 'Docs',       icon: <BookOpen size={18} />,        description: 'Project docs'      },
 ];
 
 const PAGE_TITLES: Record<View, { title: string; subtitle: string }> = {
@@ -31,6 +32,7 @@ const PAGE_TITLES: Record<View, { title: string; subtitle: string }> = {
   create:    { title: 'New Stream',  subtitle: 'Configure and deploy a USDC stream' },
   history:   { title: 'History',     subtitle: 'Complete transaction record' },
   settings:  { title: 'Settings',    subtitle: 'Wallet, contract & budgets' },
+  docs:      { title: 'Docs',        subtitle: 'Project documentation' },
 };
 
 // Sidebar widths

@@ -5,6 +5,7 @@ import { Streams } from './views/Streams';
 import { CreateStream } from './views/CreateStream';
 import { History } from './views/History';
 import { Settings } from './views/Settings';
+import { Docs } from './views/Docs';
 
 export default function App() {
   const [view, setView] = useState<View>('dashboard');
@@ -12,10 +13,11 @@ export default function App() {
   return (
     <Layout view={view} onNav={setView}>
       {view === 'dashboard' && <Dashboard onNav={setView} />}
-      {view === 'streams' && <Streams onNav={setView} />}
-      {view === 'create' && <CreateStream />}
-      {view === 'history' && <History />}
-      {view === 'settings' && <Settings />}
+      {view === 'streams'   && <Streams onNav={setView} />}
+      {view === 'create'    && <CreateStream />}
+      {view === 'history'   && <History />}
+      {view === 'settings'  && <Settings />}
+      {view === 'docs'      && <Docs />}
     </Layout>
   );
 }
