@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── LIGHT THEME (default) ──────────────────────────────── */
+:root {
+  --bg: #f6f7fb;
+  --bg-gradient: linear-gradient(160deg, #f0f4ff 0%, #fafcff 40%, #f8f6ff 100%);
+  --surface: rgba(255, 255, 255, 0.80);
+  --surface-strong: rgba(255, 255, 255, 0.96);
+  --surface-muted: #f1f3f8;
+  --surface-hover: rgba(0, 0, 0, 0.04);
+  --ink: #0f1f3d;
+  --ink-2: #2d3d5a;
+  --muted: #5a6a82;
+  --subtle: #8a96ac;
+  --border: rgba(15, 31, 61, 0.10);
+  --border-strong: rgba(15, 31, 61, 0.22);
+  --accent: #122d45;
+  --accent-hover: #1a4a78;
+  --focus: #85b1ed;
+  --success: #1a8047;
+  --danger: #ba2b4c;
+  --warn: #c47a0a;
+  --stream-blue: #2563eb;
+  --stream-purple: #7c3aed;
+  --stream-teal: #0d9488;
+
+  /* sidebar / topbar surfaces */
+  --sidebar-bg: rgba(255, 255, 255, 0.88);
+  --topbar-bg: rgba(255, 255, 255, 0.80);
+  --input-bg: #f1f3f8;
+  --input-border: rgba(15, 31, 61, 0.12);
+  --input-focus-border: #85b1ed;
+  --scrollbar-thumb: rgba(15, 31, 61, 0.22);
+  --overlay: rgba(0, 0, 0, 0.30);
+}
+
+/* ─── DARK THEME ─────────────────────────────────────────── */
+.dark {
+  --bg: #0c1220;
+  --bg-gradient: linear-gradient(160deg, #0c1220 0%, #0f1628 50%, #0e1422 100%);
+  --surface: rgba(22, 32, 52, 0.85);
+  --surface-strong: rgba(25, 36, 58, 0.98);
+  --surface-muted: rgba(255, 255, 255, 0.05);
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --ink: #e8f0ff;
+  --ink-2: #b8c8e8;
+  --muted: #7a90b0;
+  --subtle: #4d6480;
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --focus: #60a5fa;
+  --success: #22c55e;
+  --danger: #f87171;
+  --warn: #fbbf24;
+  --stream-blue: #60a5fa;
+  --stream-purple: #a78bfa;
+  --stream-teal: #2dd4bf;
+
+  --sidebar-bg: rgba(14, 22, 38, 0.95);
+  --topbar-bg: rgba(12, 18, 32, 0.90);
+  --input-bg: rgba(255, 255, 255, 0.06);
+  --input-border: rgba(255, 255, 255, 0.12);
+  --input-focus-border: #60a5fa;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  --overlay: rgba(0, 0, 0, 0.55);
+}
+
+/* ─── BASE ───────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+
+body {
+  margin: 0;
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100dvh;
+  background: var(--bg-gradient);
+  color: var(--ink);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.display { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.03em; }
+.mono { font-family: 'JetBrains Mono', Menlo, monospace; }
+
+/* ─── SCROLLBAR ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+
+/* ─── GLASS CARDS ────────────────────────────────────────── */
+.glass-card {
+  background: var(--surface);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.glass-inner {
+  background: var(--surface-muted);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: background 0.2s ease;
+}
+
+/* ─── HOVER UTILITY (theme-safe replacement for hover:bg-black/5) ── */
+.hover-surface:hover { background: var(--surface-hover); }
+
+/* ─── INPUTS (shared base — both themes pick up var tokens) ── */
+.theme-input {
+  background: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--ink);
+}
+.theme-input::placeholder { color: var(--subtle); }
+.theme-input:focus { border-color: var(--input-focus-border); outline: none; }
+
+/* ─── ANIMATE STREAM RATE TICKER ────────────────────────── */
+@keyframes stream-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+.stream-pulse { animation: stream-pulse 2s ease-in-out infinite; }
+
+/* ─── SONNER TOAST OVERRIDES ─────────────────────────────── */
+[data-sonner-toaster] {
+  font-family: 'DM Sans', sans-serif !important;
+}
+
+/* Dark toast theming */
+.dark [data-sonner-toast] {
+  background: #1a2640 !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  color: #e8f0ff !important;
+}
+
+/* ─── CONNECTKIT DARK OVERRIDE ───────────────────────────── */
+.dark .ck-dialog-overlay { background: var(--overlay) !important; }
