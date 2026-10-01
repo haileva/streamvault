@@ -144,3 +144,11 @@ body {
 
 /* ─── CONNECTKIT DARK OVERRIDE ───────────────────────────── */
 .dark .ck-dialog-overlay { background: var(--overlay) !important; }
+
+/* ─── SIDEBAR RESPONSIVE MARGIN ─────────────────────────── */
+/* On mobile the sidebar slides OVER content, so main must not be pushed */
+@media (max-width: 1023px) {
+  .sidebar-main-area {
+    margin-left: 0 !important;
+  }
+}
