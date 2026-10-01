@@ -1,4 +1,6 @@
-// API client for StreamVault backend
+// API client — works both locally (Vite proxy → Express) and on Vercel (serverless functions)
+// Path-based routes (/api/streams/123) are rewritten by vercel.json to (?streamId=123)
+// so both environments resolve correctly.
 
 const BASE = '/api';
 
@@ -41,8 +43,8 @@ export interface DashboardStats {
 }
 
 async function get<T>(path: string, params?: Record<string, string>): Promise<T> {
-  const url = new URL(path, window.location.origin + BASE);
-  if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const url = new URL(`${BASE}${path}`, window.location.origin);
+  if (params) Object.entries(params).forEach(([k, v]) => v && url.searchParams.set(k, v));
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`API ${path}: ${res.status}`);
   return res.json() as Promise<T>;
@@ -58,8 +60,10 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-async function patch<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+async function patch<T>(path: string, body: unknown, queryParams?: Record<string, string>): Promise<T> {
+  const url = new URL(`${BASE}${path}`, window.location.origin);
+  if (queryParams) Object.entries(queryParams).forEach(([k, v]) => v && url.searchParams.set(k, v));
+  const res = await fetch(url.toString(), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -68,25 +72,33 @@ async function patch<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-async function del(path: string): Promise<void> {
-  await fetch(`${BASE}${path}`, { method: 'DELETE' });
+async function del(path: string, queryParams?: Record<string, string>): Promise<void> {
+  const url = new URL(`${BASE}${path}`, window.location.origin);
+  if (queryParams) Object.entries(queryParams).forEach(([k, v]) => v && url.searchParams.set(k, v));
+  await fetch(url.toString(), { method: 'DELETE' });
 }
 
 export const api = {
   streams: {
     list: (address: string, params: Record<string, string> = {}) =>
-      get<{ streams: StreamRecord[]; total: number }>(`/streams`, { address, ...params }),
-    get: (streamId: string) => get<StreamRecord>(`/streams/${streamId}`),
-    create: (data: Partial<StreamRecord>) => post<StreamRecord>('/streams', data),
+      get<{ streams: StreamRecord[]; total: number }>('/streams', { address, ...params }),
+    get: (streamId: string) =>
+      get<StreamRecord>('/streams', { streamId }),
+    create: (data: Partial<StreamRecord>) =>
+      post<StreamRecord>('/streams', data),
     update: (streamId: string, data: Partial<StreamRecord>) =>
-      patch<StreamRecord>(`/streams/${streamId}`, data),
+      patch<StreamRecord>('/streams', data, { streamId }),
   },
   budgets: {
-    list: (owner: string) => get<{ budgets: BudgetRecord[] }>('/budgets', { owner }),
-    create: (data: Partial<BudgetRecord>) => post<BudgetRecord>('/budgets', data),
+    list: (owner: string) =>
+      get<{ budgets: BudgetRecord[] }>('/budgets', { owner }),
+    create: (data: Partial<BudgetRecord>) =>
+      post<BudgetRecord>('/budgets', data),
     update: (id: number, data: Partial<BudgetRecord>) =>
-      patch<BudgetRecord>(`/budgets/${id}`, data),
-    delete: (id: number) => del(`/budgets/${id}`),
+      patch<BudgetRecord>('/budgets', data, { id: String(id) }),
+    delete: (id: number) =>
+      del('/budgets', { id: String(id) }),
   },
-  stats: (address: string) => get<DashboardStats>('/stats', { address }),
+  stats: (address: string) =>
+    get<DashboardStats>('/stats', { address }),
 };
