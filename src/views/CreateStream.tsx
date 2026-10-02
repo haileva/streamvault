@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSwitchChain, useReadContract } from 'wagmi';
-import { erc20Abi, isAddress } from 'viem';
+import { erc20Abi, isAddress, decodeEventLog } from 'viem';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ArrowRight, Info, CheckCircle, ExternalLink, AlertCircle } from 'lucide-react';
@@ -107,10 +107,30 @@ export function CreateStream({ initialCategory, onSuccess }: CreateStreamProps =
   useEffect(() => {
     if (!txSuccess || step !== 'create') return;
     setCreateTxHash(writeTxHash);
-    const log = txReceipt?.logs?.find((l) =>
-      l.topics[0] === '0x' + keccak256StreamCreated
+
+    // Extract the real on-chain streamId from the StreamCreated event log.
+    // keccak256("StreamCreated(uint256,address,address,uint128,uint128,uint64,uint64)")
+    // = 0x51ad314c527dfda950d725e4cbe0f3423c5eecd9fdb5a7b5308f2786388cc412
+    let sid = String(Date.now()); // safe fallback
+    const streamCreatedLog = txReceipt?.logs?.find(
+      (l) => l.topics[0] === '0x51ad314c527dfda950d725e4cbe0f3423c5eecd9fdb5a7b5308f2786388cc412'
     );
-    const sid = log?.topics[1] ? BigInt(log.topics[1]).toString() : String(Date.now());
+    if (streamCreatedLog) {
+      try {
+        const decoded = decodeEventLog({
+          abi: STREAM_VAULT_ABI,
+          eventName: 'StreamCreated',
+          data: streamCreatedLog.data,
+          topics: streamCreatedLog.topics,
+        });
+        sid = (decoded.args as { streamId: bigint }).streamId.toString();
+      } catch {
+        // topics[1] is the indexed streamId as a 32-byte hex — parse directly as fallback
+        if (streamCreatedLog.topics[1]) {
+          sid = BigInt(streamCreatedLog.topics[1]).toString();
+        }
+      }
+    }
     setNewStreamId(sid);
     toast.success('Stream created');
     setStep('success');
@@ -596,5 +616,4 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-// keccak256("StreamCreated(uint256,address,address,uint128,uint128,uint64,uint64)") — just enough to identify the topic
-const keccak256StreamCreated = 'ac5de3e8f2b21a8ffa2f13b20b6b1c0e4d3c7f5a9e2b8d3c6f1a4e7b0d5c8f2';
+

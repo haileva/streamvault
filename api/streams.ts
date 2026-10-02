@@ -79,6 +79,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!stream_id || !sender_address || !recipient_address || !rate_per_second || !deposited_amount)
       return res.status(400).json({ error: 'missing required fields' });
 
+    const addrRegex = /^0x[0-9a-fA-F]{40}$/;
+    if (!addrRegex.test(sender_address) || !addrRegex.test(recipient_address))
+      return res.status(400).json({ error: 'invalid address format' });
+
+    const VALID_CATS = ['payroll', 'subscription', 'grant', 'retainer', 'other'];
+    if (category && !VALID_CATS.includes(category))
+      return res.status(400).json({ error: `invalid category: must be one of ${VALID_CATS.join(', ')}` });
+
     try {
       const { rows } = await pool.query(
         `INSERT INTO streams
@@ -114,7 +122,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const streamId = req.query.streamId as string;
     if (!streamId) return res.status(400).json({ error: 'streamId required' });
 
+    const VALID_STATUSES = ['active', 'paused', 'completed', 'cancelled'];
     const { status, withdrawn_amount, tx_hash_cancel, block_number_updated } = req.body ?? {};
+
+    if (status !== undefined && !VALID_STATUSES.includes(status))
+      return res.status(400).json({ error: `invalid status: must be one of ${VALID_STATUSES.join(', ')}` });
+
     const sets: string[] = ['updated_at = NOW()'];
     const params: unknown[] = [];
 

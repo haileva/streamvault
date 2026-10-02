@@ -90,7 +90,7 @@ export function Streams({ onNav, refreshToken }: StreamsProps) {
         <div className="flex gap-2">
           <button
             onClick={() => void fetchStreams()}
-            className={cn('p-2.5 rounded-xl border transition-colors hover:bg-black/5', loading ? 'animate-spin' : '')}
+            className={cn('p-2.5 rounded-xl border transition-colors hover-surface', loading ? 'animate-spin' : '')}
             style={{ borderColor: 'var(--border)', color: 'var(--muted)' }}
             aria-label="Refresh"
           >

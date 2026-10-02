@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
-import { motion } from 'framer-motion';
-import { Pause, Play, X, ArrowDownToLine, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Pause, Play, X, ArrowDownToLine, ExternalLink, ChevronDown, ChevronUp, Copy, Check, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import type { StreamRecord } from '@/lib/api';
 import { api } from '@/lib/api';
@@ -25,11 +25,24 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'var(--danger)',
 };
 
+// What DB status to write after a tx confirms, keyed by the function called
+const TX_TO_DB_STATUS: Record<string, StreamRecord['status']> = {
+  pauseStream: 'paused',
+  resumeStream: 'active',
+  cancelStream: 'cancelled',
+};
+
 export function StreamCard({ stream, onRefresh }: StreamCardProps) {
   const { address } = useAccount();
   const [expanded, setExpanded] = useState(false);
   const [liveBalance, setLiveBalance] = useState<{ recipient: bigint; sender: bigint } | null>(null);
   const [now, setNow] = useState(Math.floor(Date.now() / 1000));
+  // Track which contract function is in-flight so we can sync DB on confirm
+  const [pendingFn, setPendingFn] = useState<string | null>(null);
+  // Cancel confirmation modal
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  // Copy feedback
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const isSender = address?.toLowerCase() === stream.sender_address;
   const isRecipient = address?.toLowerCase() === stream.recipient_address;
@@ -58,13 +71,20 @@ export function StreamCard({ stream, onRefresh }: StreamCardProps) {
   }, [balanceData]);
 
   // Tx hooks
-  const { writeContract, data: txHash, isPending, error: writeError } = useWriteContract();
+  const { writeContract, data: txHash, isPending, error: writeError, reset: resetWrite } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash });
 
+  // ── Post-confirmation: sync DB status AFTER on-chain confirm ──
   useEffect(() => {
-    if (!isSuccess) return;
+    if (!isSuccess || !pendingFn) return;
     toast.success('Transaction confirmed');
     refetchBalance().catch(() => {});
+
+    const newStatus = TX_TO_DB_STATUS[pendingFn];
+    if (newStatus) {
+      api.streams.update(stream.stream_id, { status: newStatus }).catch(() => {});
+    }
+    setPendingFn(null);
     onRefresh();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuccess]);
@@ -75,17 +95,28 @@ export function StreamCard({ stream, onRefresh }: StreamCardProps) {
     if (!msg.includes('user rejected')) {
       toast.error('Transaction failed', { description: writeError.message?.slice(0, 120) });
     }
+    // On write error, clear pendingFn — DO NOT update DB status
+    setPendingFn(null);
+    resetWrite();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [writeError]);
 
   const isTxPending = isPending || isConfirming;
 
-  // Actions
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 1500);
+    }).catch(() => {});
+  };
+
+  // Actions — DB update only happens post-confirm in isSuccess effect
   const handleWithdraw = () => {
     if (STREAM_VAULT_ADDRESS === '0x0000000000000000000000000000000000000000') {
       toast.error('Contract not deployed yet');
       return;
     }
+    setPendingFn('withdrawFromStream');
     writeContract({
       address: STREAM_VAULT_ADDRESS,
       abi: STREAM_VAULT_ABI,
@@ -100,6 +131,7 @@ export function StreamCard({ stream, onRefresh }: StreamCardProps) {
       toast.error('Contract not deployed yet');
       return;
     }
+    setPendingFn('pauseStream');
     writeContract({
       address: STREAM_VAULT_ADDRESS,
       abi: STREAM_VAULT_ABI,
@@ -107,7 +139,7 @@ export function StreamCard({ stream, onRefresh }: StreamCardProps) {
       args: [BigInt(stream.stream_id)],
       chainId: TARGET_CHAIN_ID,
     });
-    api.streams.update(stream.stream_id, { status: 'paused' }).catch(() => {});
+    // ❌ removed: api.streams.update() here — now only called post-confirm
   };
 
   const handleResume = () => {
@@ -115,6 +147,7 @@ export function StreamCard({ stream, onRefresh }: StreamCardProps) {
       toast.error('Contract not deployed yet');
       return;
     }
+    setPendingFn('resumeStream');
     writeContract({
       address: STREAM_VAULT_ADDRESS,
       abi: STREAM_VAULT_ABI,
@@ -122,7 +155,6 @@ export function StreamCard({ stream, onRefresh }: StreamCardProps) {
       args: [BigInt(stream.stream_id)],
       chainId: TARGET_CHAIN_ID,
     });
-    api.streams.update(stream.stream_id, { status: 'active' }).catch(() => {});
   };
 
   const handleCancel = () => {
@@ -130,7 +162,8 @@ export function StreamCard({ stream, onRefresh }: StreamCardProps) {
       toast.error('Contract not deployed yet');
       return;
     }
-    if (!window.confirm('Cancel this stream? The recipient will receive accrued USDC and the sender gets the remainder.')) return;
+    setShowCancelModal(false);
+    setPendingFn('cancelStream');
     writeContract({
       address: STREAM_VAULT_ADDRESS,
       abi: STREAM_VAULT_ABI,
@@ -138,7 +171,6 @@ export function StreamCard({ stream, onRefresh }: StreamCardProps) {
       args: [BigInt(stream.stream_id)],
       chainId: TARGET_CHAIN_ID,
     });
-    api.streams.update(stream.stream_id, { status: 'cancelled' }).catch(() => {});
   };
 
   const progress = streamProgress(stream.start_time, stream.stop_time, now);
@@ -150,172 +182,271 @@ export function StreamCard({ stream, onRefresh }: StreamCardProps) {
     ? liveBalance.recipient + BigInt(stream.withdrawn_amount)
     : BigInt(stream.rate_per_second) * BigInt(elapsed);
 
+  // Compute preview amounts for cancel modal
+  const accrued = liveBalance ? liveBalance.recipient + BigInt(stream.withdrawn_amount) : 0n;
+  const senderRefund = liveBalance ? liveBalance.sender : 0n;
+
   const statusColor = STATUS_COLORS[stream.status] ?? 'var(--subtle)';
 
   return (
-    <motion.div
-      layout
-      className="glass-card overflow-hidden"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      {/* Category strip */}
-      <div className="h-1 w-full" style={{ background: categoryColor(stream.category) }} />
-
-      <div className="p-4">
-        {/* Header row */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span
-                className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
-                style={{ background: `${statusColor}18`, color: statusColor }}
-              >
-                {stream.status === 'active' && <span className="w-1.5 h-1.5 rounded-full stream-pulse" style={{ background: statusColor }} />}
-                {stream.status}
-              </span>
-              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--surface-muted)', color: 'var(--muted)' }}>
-                {stream.category}
-              </span>
-            </div>
-            <p className="font-semibold text-sm truncate" style={{ color: 'var(--ink)' }}>
-              {stream.label || `Stream #${stream.stream_id}`}
-            </p>
-          </div>
-
-          <div className="text-right flex-shrink-0">
-            <p className="display font-bold tabular-nums text-sm" style={{ color: 'var(--ink)' }}>
-              {rateToMonthly(stream.rate_per_second)}
-            </p>
-            <p className="text-xs" style={{ color: 'var(--subtle)' }}>USDC/mo</p>
-          </div>
-        </div>
-
-        {/* Addresses */}
-        <div className="flex items-center gap-2 mt-3 text-xs" style={{ color: 'var(--muted)' }}>
-          <span className="mono">{formatAddress(stream.sender_address)}</span>
-          <ArrowRightIcon />
-          <span className="mono">{formatAddress(stream.recipient_address)}</span>
-        </div>
-
-        {/* Progress */}
-        {(stream.status === 'active' || stream.status === 'paused') && (
-          <div className="mt-3">
-            <div className="flex justify-between text-xs mb-1.5" style={{ color: 'var(--subtle)' }}>
-              <span>{formatUSDC(liveAccrued)} USDC flowed</span>
-              <span>{remaining > 0 ? formatDuration(remaining) + ' left' : 'complete'}</span>
-            </div>
-            <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
-              <motion.div
-                className="h-full rounded-full"
-                style={{ background: categoryColor(stream.category) }}
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.4 }}
-              />
-            </div>
-            <p className="text-xs mt-1" style={{ color: 'var(--subtle)' }}>{progress}% disbursed</p>
-          </div>
-        )}
-
-        {/* Live accrued balance (for recipient) */}
-        {isRecipient && stream.status === 'active' && liveBalance !== null && (
-          <div className="mt-3 p-3 rounded-xl" style={{ background: 'color-mix(in srgb, var(--success) 10%, transparent)' }}>
-            <p className="text-xs" style={{ color: 'var(--success)' }}>Available to withdraw</p>
-            <p className="display text-lg font-bold tabular-nums" style={{ color: 'var(--success)' }}>
-              {formatUSDC(liveBalance.recipient)} USDC
-            </p>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex flex-wrap gap-2 mt-4">
-          {isRecipient && stream.status === 'active' && (
-            <ActionButton
-              onClick={handleWithdraw}
-              loading={isTxPending}
-              icon={<ArrowDownToLine size={14} />}
-              label="Withdraw"
-              primary
-            />
-          )}
-          {isSender && stream.status === 'active' && (
-            <ActionButton
-              onClick={handlePause}
-              loading={isTxPending}
-              icon={<Pause size={14} />}
-              label="Pause"
-            />
-          )}
-          {isSender && stream.status === 'paused' && (
-            <ActionButton
-              onClick={handleResume}
-              loading={isTxPending}
-              icon={<Play size={14} />}
-              label="Resume"
-              primary
-            />
-          )}
-          {isSender && (stream.status === 'active' || stream.status === 'paused') && (
-            <ActionButton
-              onClick={handleCancel}
-              loading={isTxPending}
-              icon={<X size={14} />}
-              label="Cancel"
-              danger
-            />
-          )}
-
-          {txHash && (
-            <a
-              href={buildTxExplorerUrl(TARGET_CHAIN_ID, txHash)}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 text-xs px-3 py-2 rounded-xl border transition-colors hover-surface"
-              style={{ borderColor: 'var(--border)', color: 'var(--muted)' }}
-            >
-              <ExternalLink size={12} />
-              View tx
-            </a>
-          )}
-
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1 text-xs px-3 py-2 rounded-xl ml-auto transition-colors hover-surface"
-            style={{ color: 'var(--subtle)' }}
-          >
-            Details
-            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
-        </div>
-
-        {/* Expanded details */}
-        {expanded && (
+    <>
+      {/* Cancel confirmation modal */}
+      <AnimatePresence>
+        {showCancelModal && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="mt-4 pt-4 border-t space-y-2"
-            style={{ borderColor: 'var(--border)' }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ background: 'var(--overlay)' }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowCancelModal(false)}
           >
-            <DetailRow label="Stream ID" value={`#${stream.stream_id}`} mono />
-            <DetailRow label="Total deposit" value={`${formatUSDC(BigInt(stream.deposited_amount))} USDC`} />
-            <DetailRow label="Rate" value={`${formatUSDC(BigInt(stream.rate_per_second), 6)}/s`} />
-            <DetailRow label="Started" value={formatTs(stream.start_time)} />
-            <DetailRow label="Ends" value={formatTs(stream.stop_time)} />
-            <DetailRow label="Sender" value={stream.sender_address} mono />
-            <DetailRow label="Recipient" value={stream.recipient_address} mono />
-            {stream.tx_hash_create && (
-              <DetailRow
-                label="Create tx"
-                value={stream.tx_hash_create.slice(0, 20) + '...'}
-                link={buildTxExplorerUrl(TARGET_CHAIN_ID, stream.tx_hash_create)}
-                mono
-              />
-            )}
+            <motion.div
+              className="glass-card p-6 max-w-sm w-full"
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ background: 'color-mix(in srgb, var(--danger) 12%, transparent)' }}>
+                  <AlertTriangle size={18} style={{ color: 'var(--danger)' }} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm" style={{ color: 'var(--ink)' }}>Cancel stream?</h3>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>This cannot be undone.</p>
+                </div>
+              </div>
+
+              <div className="glass-inner p-3 space-y-2 mb-5 text-xs">
+                <div className="flex justify-between">
+                  <span style={{ color: 'var(--muted)' }}>Recipient receives</span>
+                  <span className="font-semibold" style={{ color: 'var(--success)' }}>
+                    {liveBalance ? `${formatUSDC(accrued)} USDC` : '—'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span style={{ color: 'var(--muted)' }}>You are refunded</span>
+                  <span className="font-semibold" style={{ color: 'var(--stream-blue)' }}>
+                    {liveBalance ? `${formatUSDC(senderRefund)} USDC` : '—'}
+                  </span>
+                </div>
+                <p className="text-[11px] pt-1" style={{ color: 'var(--subtle)' }}>
+                  Recipient funds go to a pending claim they must withdraw separately.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border text-sm font-medium transition-colors hover-surface"
+                  style={{ borderColor: 'var(--border)', color: 'var(--muted)' }}
+                >
+                  Keep active
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white"
+                  style={{ background: 'var(--danger)' }}
+                >
+                  Cancel stream
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
-      </div>
-    </motion.div>
+      </AnimatePresence>
+
+      <motion.div
+        layout
+        className="glass-card overflow-hidden"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        {/* Category strip */}
+        <div className="h-1 w-full" style={{ background: categoryColor(stream.category) }} />
+
+        <div className="p-4">
+          {/* Header row */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span
+                  className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
+                  style={{ background: `${statusColor}18`, color: statusColor }}
+                >
+                  {stream.status === 'active' && <span className="w-1.5 h-1.5 rounded-full stream-pulse" style={{ background: statusColor }} />}
+                  {stream.status}
+                </span>
+                <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--surface-muted)', color: 'var(--muted)' }}>
+                  {stream.category}
+                </span>
+              </div>
+              <p className="font-semibold text-sm truncate" style={{ color: 'var(--ink)' }}>
+                {stream.label || `Stream #${stream.stream_id}`}
+              </p>
+            </div>
+
+            <div className="text-right flex-shrink-0">
+              <p className="display font-bold tabular-nums text-sm" style={{ color: 'var(--ink)' }}>
+                {rateToMonthly(stream.rate_per_second)}
+              </p>
+              <p className="text-xs" style={{ color: 'var(--subtle)' }}>USDC/mo</p>
+            </div>
+          </div>
+
+          {/* Addresses */}
+          <div className="flex items-center gap-2 mt-3 text-xs" style={{ color: 'var(--muted)' }}>
+            <button
+              onClick={() => copyToClipboard(stream.sender_address, 'sender')}
+              className="mono flex items-center gap-1 hover-surface rounded px-1 py-0.5 transition-colors"
+              title={stream.sender_address}
+            >
+              {formatAddress(stream.sender_address)}
+              {copiedKey === 'sender' ? <Check size={10} style={{ color: 'var(--success)' }} /> : <Copy size={10} style={{ color: 'var(--subtle)' }} />}
+            </button>
+            <ArrowRightIcon />
+            <button
+              onClick={() => copyToClipboard(stream.recipient_address, 'recipient')}
+              className="mono flex items-center gap-1 hover-surface rounded px-1 py-0.5 transition-colors"
+              title={stream.recipient_address}
+            >
+              {formatAddress(stream.recipient_address)}
+              {copiedKey === 'recipient' ? <Check size={10} style={{ color: 'var(--success)' }} /> : <Copy size={10} style={{ color: 'var(--subtle)' }} />}
+            </button>
+          </div>
+
+          {/* Progress */}
+          {(stream.status === 'active' || stream.status === 'paused') && (
+            <div className="mt-3">
+              <div className="flex justify-between text-xs mb-1.5" style={{ color: 'var(--subtle)' }}>
+                <span>{formatUSDC(liveAccrued)} USDC flowed</span>
+                <span>{remaining > 0 ? formatDuration(remaining) + ' left' : 'complete'}</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ background: categoryColor(stream.category) }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.4 }}
+                />
+              </div>
+              <p className="text-xs mt-1" style={{ color: 'var(--subtle)' }}>{progress}% disbursed</p>
+            </div>
+          )}
+
+          {/* Live accrued balance (for recipient) */}
+          {isRecipient && stream.status === 'active' && liveBalance !== null && (
+            <div className="mt-3 p-3 rounded-xl" style={{ background: 'color-mix(in srgb, var(--success) 10%, transparent)' }}>
+              <p className="text-xs" style={{ color: 'var(--success)' }}>Available to withdraw</p>
+              <p className="display text-lg font-bold tabular-nums" style={{ color: 'var(--success)' }}>
+                {formatUSDC(liveBalance.recipient)} USDC
+              </p>
+            </div>
+          )}
+
+          {/* In-flight action indicator */}
+          {isTxPending && pendingFn && (
+            <div className="mt-3 flex items-center gap-2 text-xs p-2 rounded-xl"
+              style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)', color: 'var(--accent-hover)' }}>
+              <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin shrink-0" />
+              {isPending ? 'Waiting for wallet confirmation...' : `Confirming ${pendingFn.replace(/([A-Z])/g, ' $1').toLowerCase()}...`}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2 mt-4">
+            {isRecipient && stream.status === 'active' && (
+              <ActionButton
+                onClick={handleWithdraw}
+                loading={isTxPending}
+                icon={<ArrowDownToLine size={14} />}
+                label="Withdraw"
+                primary
+              />
+            )}
+            {isSender && stream.status === 'active' && (
+              <ActionButton
+                onClick={handlePause}
+                loading={isTxPending}
+                icon={<Pause size={14} />}
+                label="Pause"
+              />
+            )}
+            {isSender && stream.status === 'paused' && (
+              <ActionButton
+                onClick={handleResume}
+                loading={isTxPending}
+                icon={<Play size={14} />}
+                label="Resume"
+                primary
+              />
+            )}
+            {isSender && (stream.status === 'active' || stream.status === 'paused') && (
+              <ActionButton
+                onClick={() => setShowCancelModal(true)}
+                loading={isTxPending}
+                icon={<X size={14} />}
+                label="Cancel"
+                danger
+              />
+            )}
+
+            {txHash && (
+              <a
+                href={buildTxExplorerUrl(TARGET_CHAIN_ID, txHash)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 text-xs px-3 py-2 rounded-xl border transition-colors hover-surface"
+                style={{ borderColor: 'var(--border)', color: 'var(--muted)' }}
+              >
+                <ExternalLink size={12} />
+                View tx
+              </a>
+            )}
+
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="flex items-center gap-1 text-xs px-3 py-2 rounded-xl ml-auto transition-colors hover-surface"
+              style={{ color: 'var(--subtle)' }}
+            >
+              Details
+              {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </button>
+          </div>
+
+          {/* Expanded details */}
+          {expanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mt-4 pt-4 border-t space-y-2"
+              style={{ borderColor: 'var(--border)' }}
+            >
+              <DetailRow label="Stream ID" value={`#${stream.stream_id}`} mono onCopy={() => copyToClipboard(stream.stream_id, 'sid')} copied={copiedKey === 'sid'} />
+              <DetailRow label="Total deposit" value={`${formatUSDC(BigInt(stream.deposited_amount))} USDC`} />
+              <DetailRow label="Rate" value={`${formatUSDC(BigInt(stream.rate_per_second), 6)}/s`} />
+              <DetailRow label="Started" value={formatTs(stream.start_time)} />
+              <DetailRow label="Ends" value={formatTs(stream.stop_time)} />
+              <DetailRow label="Sender" value={stream.sender_address} mono onCopy={() => copyToClipboard(stream.sender_address, 'det-sender')} copied={copiedKey === 'det-sender'} />
+              <DetailRow label="Recipient" value={stream.recipient_address} mono onCopy={() => copyToClipboard(stream.recipient_address, 'det-rec')} copied={copiedKey === 'det-rec'} />
+              {stream.tx_hash_create && (
+                <DetailRow
+                  label="Create tx"
+                  value={stream.tx_hash_create.slice(0, 20) + '...'}
+                  link={buildTxExplorerUrl(TARGET_CHAIN_ID, stream.tx_hash_create)}
+                  mono
+                  onCopy={() => copyToClipboard(stream.tx_hash_create!, 'tx')}
+                  copied={copiedKey === 'tx'}
+                />
+              )}
+            </motion.div>
+          )}
+        </div>
+      </motion.div>
+    </>
   );
 }
 
@@ -362,28 +493,38 @@ function ArrowRightIcon() {
   );
 }
 
-function DetailRow({ label, value, mono, link }: { label: string; value: string; mono?: boolean; link?: string }) {
+function DetailRow({ label, value, mono, link, onCopy, copied }: {
+  label: string; value: string; mono?: boolean; link?: string;
+  onCopy?: () => void; copied?: boolean;
+}) {
   return (
     <div className="flex justify-between gap-2 text-xs">
       <span style={{ color: 'var(--muted)' }}>{label}</span>
-      {link ? (
-        <a
-          href={link}
-          target="_blank"
-          rel="noreferrer"
-          className={cn('truncate max-w-[200px] underline', mono ? 'mono' : '')}
-          style={{ color: 'var(--accent-hover)' }}
-        >
-          {value}
-        </a>
-      ) : (
-        <span
-          className={cn('truncate max-w-[200px]', mono ? 'mono' : '')}
-          style={{ color: 'var(--ink-2)' }}
-        >
-          {value}
-        </span>
-      )}
+      <div className="flex items-center gap-1 min-w-0">
+        {link ? (
+          <a
+            href={link}
+            target="_blank"
+            rel="noreferrer"
+            className={cn('truncate max-w-[160px] underline', mono ? 'mono' : '')}
+            style={{ color: 'var(--accent-hover)' }}
+          >
+            {value}
+          </a>
+        ) : (
+          <span
+            className={cn('truncate max-w-[160px]', mono ? 'mono' : '')}
+            style={{ color: 'var(--ink-2)' }}
+          >
+            {value}
+          </span>
+        )}
+        {onCopy && (
+          <button onClick={onCopy} className="shrink-0 hover-surface rounded p-0.5 transition-colors" title="Copy">
+            {copied ? <Check size={10} style={{ color: 'var(--success)' }} /> : <Copy size={10} style={{ color: 'var(--subtle)' }} />}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

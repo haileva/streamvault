@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useReadContract } from 'wagmi';
 import { erc20Abi } from 'viem';
-import { Plus, Trash2, Shield, Wallet, Info } from 'lucide-react';
+import { Plus, Trash2, Shield, Wallet, Info, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, type BudgetRecord } from '@/lib/api';
 import { formatUSDC, CATEGORIES } from '@/lib/utils';
@@ -17,7 +17,15 @@ export function Settings() {
   const [newName, setNewName] = useState('');
   const [newCategory, setNewCategory] = useState('payroll');
   const [newLimit, setNewLimit] = useState('');
-  const [newPeriod, _setNewPeriod] = useState(2592000);
+  const [newPeriod, setNewPeriod] = useState(2592000);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const copy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(key);
+      setTimeout(() => setCopied(null), 1500);
+    }).catch(() => {});
+  };
   const [saving, setSaving] = useState(false);
 
   // USDC balance
@@ -100,11 +108,19 @@ export function Settings() {
             <h2 className="font-semibold text-sm" style={{ color: 'var(--ink)' }}>Wallet</h2>
           </div>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span style={{ color: 'var(--muted)' }}>Address</span>
-              <span className="mono text-xs" style={{ color: 'var(--ink-2)' }}>
+              <button
+                onClick={() => address && copy(address, 'wallet')}
+                className="flex items-center gap-1 mono text-xs hover-surface rounded px-1.5 py-0.5 transition-colors"
+                style={{ color: 'var(--ink-2)' }}
+                title={address}
+              >
                 {address?.slice(0, 10)}...{address?.slice(-6)}
-              </span>
+                {copied === 'wallet'
+                  ? <Check size={10} style={{ color: 'var(--success)' }} />
+                  : <Copy size={10} style={{ color: 'var(--subtle)' }} />}
+              </button>
             </div>
             <div className="flex justify-between">
               <span style={{ color: 'var(--muted)' }}>USDC balance</span>
@@ -126,19 +142,37 @@ export function Settings() {
             <h2 className="font-semibold text-sm" style={{ color: 'var(--ink)' }}>Contract</h2>
           </div>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span style={{ color: 'var(--muted)' }}>StreamVault address</span>
-              <span className="mono text-xs" style={{ color: 'var(--ink-2)' }}>
-                {STREAM_VAULT_ADDRESS === '0x0000000000000000000000000000000000000000'
-                  ? 'Not deployed'
-                  : `${STREAM_VAULT_ADDRESS.slice(0, 10)}...${STREAM_VAULT_ADDRESS.slice(-6)}`}
-              </span>
+              {STREAM_VAULT_ADDRESS === '0x0000000000000000000000000000000000000000' ? (
+                <span className="mono text-xs" style={{ color: 'var(--subtle)' }}>Not deployed</span>
+              ) : (
+                <button
+                  onClick={() => copy(STREAM_VAULT_ADDRESS, 'contract')}
+                  className="flex items-center gap-1 mono text-xs hover-surface rounded px-1.5 py-0.5 transition-colors"
+                  style={{ color: 'var(--ink-2)' }}
+                  title={STREAM_VAULT_ADDRESS}
+                >
+                  {STREAM_VAULT_ADDRESS.slice(0, 10)}...{STREAM_VAULT_ADDRESS.slice(-6)}
+                  {copied === 'contract'
+                    ? <Check size={10} style={{ color: 'var(--success)' }} />
+                    : <Copy size={10} style={{ color: 'var(--subtle)' }} />}
+                </button>
+              )}
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span style={{ color: 'var(--muted)' }}>USDC token</span>
-              <span className="mono text-xs" style={{ color: 'var(--ink-2)' }}>
+              <button
+                onClick={() => copy(USDC_ADDRESS, 'usdc')}
+                className="flex items-center gap-1 mono text-xs hover-surface rounded px-1.5 py-0.5 transition-colors"
+                style={{ color: 'var(--ink-2)' }}
+                title={USDC_ADDRESS}
+              >
                 {USDC_ADDRESS.slice(0, 10)}...{USDC_ADDRESS.slice(-6)}
-              </span>
+                {copied === 'usdc'
+                  ? <Check size={10} style={{ color: 'var(--success)' }} />
+                  : <Copy size={10} style={{ color: 'var(--subtle)' }} />}
+              </button>
             </div>
           </div>
           {STREAM_VAULT_ADDRESS === '0x0000000000000000000000000000000000000000' && (
@@ -195,6 +229,33 @@ export function Settings() {
                   className="flex-1 px-3 py-2 rounded-xl text-sm outline-none border"
                   style={{ background: 'var(--surface-muted)', borderColor: 'var(--border)', color: 'var(--ink)' }}
                 />
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--muted)' }}>
+                  Reset period
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { label: 'Weekly', seconds: 604800 },
+                    { label: 'Monthly', seconds: 2592000 },
+                    { label: 'Quarterly', seconds: 7776000 },
+                    { label: 'Yearly', seconds: 31536000 },
+                  ].map((p) => (
+                    <button
+                      key={p.seconds}
+                      type="button"
+                      onClick={() => setNewPeriod(p.seconds)}
+                      className="text-xs px-3 py-1.5 rounded-lg border transition-all"
+                      style={
+                        newPeriod === p.seconds
+                          ? { background: 'var(--accent)', color: 'white', borderColor: 'var(--accent)' }
+                          : { background: 'var(--surface-muted)', color: 'var(--muted)', borderColor: 'var(--border)' }
+                      }
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="flex gap-2">
                 <button

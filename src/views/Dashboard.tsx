@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 // motion is used in StatCard
 import { api, type DashboardStats, type StreamRecord } from '@/lib/api';
 import { StreamCard } from '@/components/StreamCard';
+import { ClaimPendingBanner } from '@/components/ClaimPendingBanner';
 import { rateToMonthly } from '@/lib/utils';
 import { USDC_ADDRESS, TARGET_CHAIN_ID } from '@/lib/contract';
 import { Amount, usdcDecimalsFor } from '@/onchain-money';
@@ -74,8 +75,25 @@ export function Dashboard({ onNav, onNavToCreate, refreshToken }: DashboardProps
     );
   }
 
+  // Re-fetch dashboard data when a stream action completes
+  const refreshDashboard = () => {
+    if (!address) return;
+    Promise.all([
+      api.stats(address),
+      api.streams.list(address, { status: 'active', limit: '4' }),
+    ])
+      .then(([s, { streams }]) => {
+        setStats(s);
+        setActiveStreams(streams);
+      })
+      .catch(console.error);
+  };
+
   return (
     <div className="space-y-8">
+      {/* Claim pending USDC banner — only visible when pendingWithdrawals > 0 */}
+      <ClaimPendingBanner />
+
       {/* Hero row — 4 stat cards, comfortable on all widths */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
         <StatCard
@@ -150,7 +168,7 @@ export function Dashboard({ onNav, onNavToCreate, refreshToken }: DashboardProps
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {activeStreams.map((s) => (
-              <StreamCard key={s.stream_id} stream={s} onRefresh={() => {}} />
+              <StreamCard key={s.stream_id} stream={s} onRefresh={refreshDashboard} />
             ))}
           </div>
         )}

@@ -33,6 +33,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { owner_address, name, category, limit_amount, period_seconds } = req.body ?? {};
     if (!owner_address || !name || !limit_amount)
       return res.status(400).json({ error: 'missing fields' });
+
+    const addrRegex = /^0x[0-9a-fA-F]{40}$/;
+    if (!addrRegex.test(owner_address))
+      return res.status(400).json({ error: 'invalid owner_address format' });
+
+    if (isNaN(Number(limit_amount)) || Number(limit_amount) <= 0)
+      return res.status(400).json({ error: 'limit_amount must be a positive number' });
+
+    const VALID_CATS = ['payroll', 'subscription', 'grant', 'retainer', 'other'];
+    if (category && !VALID_CATS.includes(category))
+      return res.status(400).json({ error: `invalid category` });
     try {
       const now = Math.floor(Date.now() / 1000);
       const { rows } = await pool.query(

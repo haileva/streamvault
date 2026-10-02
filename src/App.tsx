@@ -35,7 +35,7 @@ export default function App() {
       {view === 'create' && (
         <CreateStream initialCategory={createCategory} onSuccess={handleStreamCreated} />
       )}
-      {view === 'history'   && <History />}
+      {view === 'history'   && <History refreshToken={refreshToken} />}
       {view === 'settings'  && <Settings />}
       {view === 'docs'      && <Docs />}
     </Layout>

@@ -2,16 +2,20 @@ import { useEffect, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { api, type StreamRecord } from '@/lib/api';
 import { formatUSDC, formatTs, rateToMonthly, categoryColor, formatAddress } from '@/lib/utils';
-import { CheckCircle, XCircle, AlertTriangle, Pause } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Activity } from 'lucide-react';
 
 const STATUS_ICONS: Record<string, React.ReactNode> = {
-  active: <Pause size={14} style={{ color: 'var(--stream-blue)' }} />,
+  active: <Activity size={14} style={{ color: 'var(--stream-blue)' }} />,
   paused: <AlertTriangle size={14} style={{ color: 'var(--warn)' }} />,
   completed: <CheckCircle size={14} style={{ color: 'var(--success)' }} />,
   cancelled: <XCircle size={14} style={{ color: 'var(--danger)' }} />,
 };
 
-export function History() {
+interface HistoryProps {
+  refreshToken?: number;
+}
+
+export function History({ refreshToken }: HistoryProps) {
   const { address, isConnected } = useAccount();
   const [streams, setStreams] = useState<StreamRecord[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,7 +35,9 @@ export function History() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [address, page]);
+  // refreshToken intentionally included to re-fetch after a stream is created.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, page, refreshToken]);
 
   if (!isConnected) {
     return (
