@@ -309,8 +309,10 @@ export function Layout({ view, onNav, children }: LayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 px-5 lg:px-8 py-6 lg:py-8 w-full max-w-[1440px] mx-auto">
-          {children}
+        <main className="flex-1 flex flex-col px-5 lg:px-8 py-6 lg:py-8 w-full max-w-[1440px] mx-auto">
+          <div className="flex-1">
+            {children}
+          </div>
           <Footer />
         </main>
       </div>
