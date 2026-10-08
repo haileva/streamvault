@@ -1,7 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { BookOpen, ChevronRight, Hash, ExternalLink, Menu, X } from 'lucide-react';
+import { BookOpen, ChevronRight, Hash, ExternalLink, Menu, X, Languages } from 'lucide-react';
 import { renderMarkdown, extractHeadings, type Heading } from '@/lib/markdown';
 import { cn } from '@/lib/utils';
+import {
+  DOC_01_VI, DOC_02_VI, DOC_03_VI,
+  DOC_04_VI, DOC_05_VI, DOC_06_VI,
+} from '@/lib/docs-vi';
+
+type Lang = 'en' | 'vi';
 
 /* ─── Raw markdown content ─────────────────────────────────────── */
 
@@ -770,19 +776,50 @@ Mainnet deployment requires an independent security audit and is performed outsi
 
 interface DocEntry {
   id: string;
-  title: string;
-  subtitle: string;
-  content: string;
-  badge?: string;
+  title: { en: string; vi: string };
+  subtitle: { en: string; vi: string };
+  content: { en: string; vi: string };
+  badge?: { en: string; vi: string };
 }
 
 const DOCS: DocEntry[] = [
-  { id: '01-overview',       title: 'Overview',          subtitle: 'What StreamVault is and does',        content: DOC_01, badge: 'Start here' },
-  { id: '02-architecture',   title: 'Architecture',      subtitle: 'System design and data flows',        content: DOC_02 },
-  { id: '03-smart-contract', title: 'Smart Contract',    subtitle: 'Contract reference and audit history', content: DOC_03 },
-  { id: '04-design-system',  title: 'Design System',     subtitle: 'Tokens, typography, components',      content: DOC_04 },
-  { id: '05-coding-standards', title: 'Coding Standards', subtitle: 'Rules, patterns, naming',            content: DOC_05 },
-  { id: '06-workflow',       title: 'Workflow',          subtitle: 'Git, scripts, quality gates, deploy', content: DOC_06 },
+  {
+    id: '01-overview',
+    title:    { en: 'Overview',          vi: 'Tổng Quan'        },
+    subtitle: { en: 'What StreamVault is and does', vi: 'StreamVault là gì và làm gì' },
+    content:  { en: DOC_01, vi: DOC_01_VI },
+    badge:    { en: 'Start here', vi: 'Bắt đầu' },
+  },
+  {
+    id: '02-architecture',
+    title:    { en: 'Architecture',      vi: 'Kiến Trúc'        },
+    subtitle: { en: 'System design and data flows', vi: 'Thiết kế hệ thống và luồng dữ liệu' },
+    content:  { en: DOC_02, vi: DOC_02_VI },
+  },
+  {
+    id: '03-smart-contract',
+    title:    { en: 'Smart Contract',    vi: 'Smart Contract'   },
+    subtitle: { en: 'Contract reference and audit history', vi: 'Tài liệu hợp đồng và lịch sử kiểm toán' },
+    content:  { en: DOC_03, vi: DOC_03_VI },
+  },
+  {
+    id: '04-design-system',
+    title:    { en: 'Design System',     vi: 'Hệ Thống Thiết Kế' },
+    subtitle: { en: 'Tokens, typography, components', vi: 'Tokens, typography, components' },
+    content:  { en: DOC_04, vi: DOC_04_VI },
+  },
+  {
+    id: '05-coding-standards',
+    title:    { en: 'Coding Standards',  vi: 'Tiêu Chuẩn Code'  },
+    subtitle: { en: 'Rules, patterns, naming', vi: 'Quy tắc, patterns, đặt tên' },
+    content:  { en: DOC_05, vi: DOC_05_VI },
+  },
+  {
+    id: '06-workflow',
+    title:    { en: 'Workflow',          vi: 'Quy Trình'        },
+    subtitle: { en: 'Git, scripts, quality gates, deploy', vi: 'Git, scripts, quality gates, deploy' },
+    content:  { en: DOC_06, vi: DOC_06_VI },
+  },
 ];
 
 /* ─── Table of Contents ─────────────────────────────────────────── */
@@ -830,11 +867,20 @@ export function Docs() {
   const [activeDocId, setActiveDocId] = useState(DOCS[0].id);
   const [activeHeadingId, setActiveHeadingId] = useState('');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [lang, setLang] = useState<Lang>(() => {
+    try { return (localStorage.getItem('sv-docs-lang') as Lang) ?? 'en'; }
+    catch { return 'en'; }
+  });
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Persist lang preference
+  useEffect(() => {
+    try { localStorage.setItem('sv-docs-lang', lang); } catch { /* ignore */ }
+  }, [lang]);
+
   const activeDoc = DOCS.find(d => d.id === activeDocId) ?? DOCS[0];
-  const html = renderMarkdown(activeDoc.content);
-  const headings = extractHeadings(activeDoc.content);
+  const html = renderMarkdown(activeDoc.content[lang]);
+  const headings = extractHeadings(activeDoc.content[lang]);
 
   // Scroll-spy for ToC
   useEffect(() => {
@@ -896,10 +942,24 @@ export function Docs() {
         }}
       >
         {/* Sidebar header */}
-        <div className="px-4 py-5 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-2 mb-1">
-            <BookOpen size={15} style={{ color: 'var(--accent)' }} />
-            <span className="display font-bold text-sm" style={{ color: 'var(--ink)' }}>Documentation</span>
+        <div className="px-4 py-4 border-b shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              <BookOpen size={15} style={{ color: 'var(--accent)' }} />
+              <span className="display font-bold text-sm" style={{ color: 'var(--ink)' }}>
+                {lang === 'en' ? 'Documentation' : 'Tài Liệu'}
+              </span>
+            </div>
+            {/* EN / VI toggle */}
+            <button
+              onClick={() => setLang(l => l === 'en' ? 'vi' : 'en')}
+              title={lang === 'en' ? 'Switch to Vietnamese' : 'Chuyển sang Tiếng Anh'}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold hover-surface transition-colors"
+              style={{ border: '1px solid var(--border)', color: 'var(--accent)' }}
+            >
+              <Languages size={12} />
+              {lang === 'en' ? 'VI' : 'EN'}
+            </button>
           </div>
           <p className="text-[11px]" style={{ color: 'var(--subtle)' }}>StreamVault v1.0</p>
         </div>
@@ -936,7 +996,7 @@ export function Docs() {
                       className="text-xs font-semibold truncate"
                       style={{ color: isActive ? 'var(--accent)' : 'var(--ink)' }}
                     >
-                      {doc.title}
+                      {doc.title[lang]}
                     </p>
                   </div>
                   {doc.badge && (
@@ -944,7 +1004,7 @@ export function Docs() {
                       className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-md shrink-0"
                       style={{ background: 'var(--success)', color: 'white' }}
                     >
-                      {doc.badge}
+                      {doc.badge[lang]}
                     </span>
                   )}
                   {isActive && (
@@ -952,7 +1012,7 @@ export function Docs() {
                   )}
                 </div>
                 <p className="text-[11px] mt-0.5 pl-7 truncate" style={{ color: 'var(--subtle)' }}>
-                  {doc.subtitle}
+                  {doc.subtitle[lang]}
                 </p>
               </button>
             );
@@ -969,7 +1029,7 @@ export function Docs() {
             style={{ color: 'var(--muted)' }}
           >
             <ExternalLink size={12} />
-            View on GitHub
+            {lang === 'en' ? 'View on GitHub' : 'Xem trên GitHub'}
           </a>
         </div>
       </aside>
@@ -990,9 +1050,17 @@ export function Docs() {
           >
             {mobileSidebarOpen ? <X size={15} /> : <Menu size={15} />}
           </button>
-          <span className="text-sm font-semibold truncate" style={{ color: 'var(--ink)' }}>
-            {activeDoc.title}
+          <span className="text-sm font-semibold truncate flex-1" style={{ color: 'var(--ink)' }}>
+            {activeDoc.title[lang]}
           </span>
+          <button
+            onClick={() => setLang(l => l === 'en' ? 'vi' : 'en')}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold hover-surface transition-colors shrink-0"
+            style={{ border: '1px solid var(--border)', color: 'var(--accent)' }}
+          >
+            <Languages size={11} />
+            {lang === 'en' ? 'VI' : 'EN'}
+          </button>
         </div>
 
         <div className="flex flex-1 min-w-0">
@@ -1016,14 +1084,14 @@ export function Docs() {
                     className="text-[10px] font-bold px-2 py-0.5 rounded-md"
                     style={{ background: 'var(--success)', color: 'white' }}
                   >
-                    {activeDoc.badge}
+                    {activeDoc.badge[lang]}
                   </span>
                 )}
               </div>
               <h1 className="display text-3xl font-bold mb-2" style={{ color: 'var(--ink)' }}>
-                {activeDoc.title}
+                {activeDoc.title[lang]}
               </h1>
-              <p className="text-sm" style={{ color: 'var(--muted)' }}>{activeDoc.subtitle}</p>
+              <p className="text-sm" style={{ color: 'var(--muted)' }}>{activeDoc.subtitle[lang]}</p>
             </div>
 
             {/* Rendered markdown */}
@@ -1044,7 +1112,7 @@ export function Docs() {
                         style={{ border: '1px solid var(--border)', color: 'var(--muted)' }}
                       >
                         <ChevronRight size={14} className="rotate-180" />
-                        <span>{prev.title}</span>
+                        <span>{prev.title[lang]}</span>
                       </button>
                     ) : <div />}
                     {next ? (
@@ -1053,7 +1121,7 @@ export function Docs() {
                         className="flex items-center gap-2 text-sm hover-surface px-4 py-2.5 rounded-xl transition-colors ml-auto"
                         style={{ border: '1px solid var(--border)', color: 'var(--muted)' }}
                       >
-                        <span>{next.title}</span>
+                        <span>{next.title[lang]}</span>
                         <ChevronRight size={14} />
                       </button>
                     ) : <div />}
@@ -1069,7 +1137,7 @@ export function Docs() {
             style={{ borderColor: 'var(--border)', height: 'calc(100vh - 64px)' }}
           >
             <p className="text-[10px] font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--subtle)' }}>
-              On this page
+              {lang === 'en' ? 'On this page' : 'Trên trang này'}
             </p>
             <TableOfContents headings={headings} activeId={activeHeadingId} />
           </div>
