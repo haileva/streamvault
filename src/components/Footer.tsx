@@ -249,8 +249,9 @@ export function Footer() {
       <footer
         className="mt-16 rounded-2xl overflow-hidden border"
         style={{
-          background: 'linear-gradient(160deg, #0b1a2e 0%, #0f2040 60%, #0d1a30 100%)',
-          borderColor: 'rgba(255,255,255,0.07)',
+          background: 'linear-gradient(160deg, var(--footer-bg-from) 0%, var(--footer-bg-to) 60%, var(--footer-bg-from) 100%)',
+          borderColor: 'var(--footer-border)',
+          transition: 'background 0.2s ease, border-color 0.2s ease',
         }}
       >
         {/* Top section */}
@@ -260,24 +261,27 @@ export function Footer() {
             <div className="flex items-center gap-2.5">
               <div
                 className="flex items-center justify-center w-9 h-9 rounded-xl"
-                style={{ background: 'rgba(37,99,235,0.25)', border: '1px solid rgba(37,99,235,0.4)' }}
+                style={{
+                  background: 'var(--footer-brand-icon-bg)',
+                  border: '1px solid var(--footer-brand-icon-border)',
+                }}
               >
-                <Droplets size={17} color="#60a5fa" />
+                <Droplets size={17} style={{ color: 'var(--footer-feature-icon)' }} />
               </div>
-              <span className="display text-lg font-bold tracking-tight" style={{ color: '#e8f0ff' }}>
+              <span className="display text-lg font-bold tracking-tight" style={{ color: 'var(--footer-brand-name)' }}>
                 StreamVault
               </span>
             </div>
 
-            <p className="text-sm leading-relaxed" style={{ color: '#6b82a0' }}>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--footer-body)' }}>
               Programmable USDC payroll and subscription streaming. Funds flow
               per-second, onchain — no intermediaries, no delays.
             </p>
 
             <ul className="space-y-2">
               {FEATURES.map((f) => (
-                <li key={f.label} className="flex items-center gap-2 text-xs" style={{ color: '#4d6a8a' }}>
-                  <span style={{ color: '#3b82f6' }}>{f.icon}</span>
+                <li key={f.label} className="flex items-center gap-2 text-xs" style={{ color: 'var(--footer-feature)' }}>
+                  <span style={{ color: 'var(--footer-feature-icon)' }}>{f.icon}</span>
                   {f.label}
                 </li>
               ))}
@@ -296,12 +300,12 @@ export function Footer() {
                   aria-label={s.label}
                   className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    color: '#6b82a0',
+                    background: 'var(--footer-social-bg)',
+                    border: '1px solid var(--footer-social-border)',
+                    color: 'var(--footer-social-color)',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = '#93b4d8')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = '#6b82a0')}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--footer-social-hover)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--footer-social-color)')}
                 >
                   {s.icon}
                 </a>
@@ -317,7 +321,7 @@ export function Footer() {
             ] as const
           ).map((col) => (
             <div key={col.title} className="md:col-span-2 xl:col-span-2 space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#3b82f6' }}>
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--footer-heading)' }}>
                 {col.title}
               </p>
               <ul className="space-y-2.5">
@@ -328,9 +332,9 @@ export function Footer() {
                       target={'external' in item && item.external ? '_blank' : undefined}
                       rel={'external' in item && item.external ? 'noopener noreferrer' : undefined}
                       className="group flex items-center gap-1 text-sm transition-colors"
-                      style={{ color: '#6b82a0' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = '#93b4d8')}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = '#6b82a0')}
+                      style={{ color: 'var(--footer-link)' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--footer-link-hover)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--footer-link)')}
                     >
                       {item.label}
                       {'external' in item && item.external && (
@@ -345,7 +349,7 @@ export function Footer() {
 
           {/* Legal column — buttons that open modals */}
           <div className="md:col-span-2 xl:col-span-2 space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#3b82f6' }}>
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--footer-heading)' }}>
               Legal
             </p>
             <ul className="space-y-2.5">
@@ -354,9 +358,9 @@ export function Footer() {
                   <button
                     onClick={() => setLegalDoc(item.doc)}
                     className="text-sm text-left transition-colors"
-                    style={{ color: '#6b82a0' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = '#93b4d8')}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = '#6b82a0')}
+                    style={{ color: 'var(--footer-link)' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--footer-link-hover)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--footer-link)')}
                   >
                     {item.label}
                   </button>
@@ -367,20 +371,20 @@ export function Footer() {
         </div>
 
         {/* Divider */}
-        <div className="mx-8" style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+        <div className="mx-8" style={{ height: 1, background: 'var(--footer-divider)' }} />
 
         {/* Bottom bar */}
         <div className="px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs" style={{ color: '#4d6a8a' }}>
+          <p className="text-xs" style={{ color: 'var(--footer-copy)' }}>
             © {new Date().getFullYear()} StreamVault. Built on{' '}
             <a
               href="https://arc.io"
               target="_blank"
               rel="noopener noreferrer"
               className="transition-colors"
-              style={{ color: '#3b82f6' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = '#60a5fa')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#3b82f6')}
+              style={{ color: 'var(--footer-copy-link)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--footer-copy-link-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--footer-copy-link)')}
             >
               Arc
             </a>{' '}
@@ -389,9 +393,9 @@ export function Footer() {
           <button
             onClick={() => setLegalDoc('disclaimer')}
             className="text-xs transition-colors"
-            style={{ color: '#334a63' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#4d6a8a')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#334a63')}
+            style={{ color: 'var(--footer-testnet)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--footer-testnet-hover)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--footer-testnet)')}
           >
             Testnet only — not for real funds
           </button>
