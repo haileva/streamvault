@@ -215,10 +215,7 @@ export const STREAM_VAULT_ABI = [
 // Deployed on Arc Testnet
 export const STREAM_VAULT_ADDRESS: `0x${string}` = '0xdf21ed361016bee04ea430f1c2d86ed9cc3b85b8';
 
-// Legacy setter (no-op after hardcode)
-export function setStreamVaultAddress(_addr: `0x${string}`) {
-  // address is now hardcoded to the deployed contract
-}
+// NOTE: setStreamVaultAddress is intentionally removed — address is hardcoded post-deploy.
 
 export const ERC20_APPROVE_ABI = [
   {

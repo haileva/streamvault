@@ -7,21 +7,26 @@ export function formatAddress(addr: string): string {
 
 export function formatUSDC(raw: bigint | string | number, decimals = 6): string {
   const n = typeof raw === 'bigint' ? raw : BigInt(Math.floor(Number(raw)));
-  const whole = n / BigInt(10 ** decimals);
-  const frac = n % BigInt(10 ** decimals);
+  // Guard: clamp negative amounts to 0 (can occur with stale state during tx processing)
+  const abs = n < 0n ? 0n : n;
+  const divisor = BigInt(10 ** decimals);
+  const whole = abs / divisor;
+  const frac = abs % divisor;
   const fracStr = frac.toString().padStart(decimals, '0').slice(0, 2);
   return `${whole.toLocaleString('en-US')}.${fracStr}`;
 }
 
-/** seconds -> "2h 15m" or "3d 4h" */
+/** seconds -> "2h 15m" or "3d 4h" or "45s" */
 export function formatDuration(seconds: number): string {
   if (seconds <= 0) return '0s';
   const d = Math.floor(seconds / 86400);
   const h = Math.floor((seconds % 86400) / 3600);
   const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
   if (d > 0) return `${d}d ${h}h`;
   if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
+  if (m > 0) return `${m}m`;
+  return `${s}s`;
 }
 
 /** unix ts -> "Oct 12, 2026 14:30" */

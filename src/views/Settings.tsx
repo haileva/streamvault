@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
-import { useReadContract } from 'wagmi';
+import { useAccount, useReadContract } from 'wagmi';
 import { erc20Abi } from 'viem';
 import { Plus, Trash2, Shield, Wallet, Info, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -58,7 +57,7 @@ export function Settings() {
     try {
       const raw = BigInt(Math.floor(parseFloat(newLimit) * 10 ** USDC_DECIMALS));
       const b = await api.budgets.create({
-        owner_address: address,
+        owner_address: address.toLowerCase(),
         name: newName,
         category: newCategory,
         limit_amount: raw.toString(),
@@ -77,8 +76,9 @@ export function Settings() {
   };
 
   const handleDelete = async (id: number) => {
+    if (!address) return;
     try {
-      await api.budgets.delete(id);
+      await api.budgets.delete(id, address.toLowerCase());
       setBudgets((prev) => prev.filter((b) => b.id !== id));
       toast.success('Budget removed');
     } catch {

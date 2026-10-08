@@ -44,7 +44,10 @@ export interface DashboardStats {
 
 async function get<T>(path: string, params?: Record<string, string>): Promise<T> {
   const url = new URL(`${BASE}${path}`, window.location.origin);
-  if (params) Object.entries(params).forEach(([k, v]) => v && url.searchParams.set(k, v));
+  // Only skip params that are strictly undefined/null — preserve '0', 'false', etc.
+  if (params) Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) url.searchParams.set(k, v);
+  });
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(`API ${path}: ${res.status}`);
   return res.json() as Promise<T>;
@@ -72,10 +75,17 @@ async function patch<T>(path: string, body: unknown, queryParams?: Record<string
   return res.json() as Promise<T>;
 }
 
-async function del(path: string, queryParams?: Record<string, string>): Promise<void> {
+async function del(path: string, queryParams?: Record<string, string>, body?: Record<string, string>): Promise<void> {
   const url = new URL(`${BASE}${path}`, window.location.origin);
-  if (queryParams) Object.entries(queryParams).forEach(([k, v]) => v && url.searchParams.set(k, v));
-  await fetch(url.toString(), { method: 'DELETE' });
+  if (queryParams) Object.entries(queryParams).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) url.searchParams.set(k, v);
+  });
+  const res = await fetch(url.toString(), {
+    method: 'DELETE',
+    ...(body ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}),
+  });
+  // 204 No Content is the expected success; anything else is an error
+  if (!res.ok && res.status !== 204) throw new Error(`API DELETE ${path}: ${res.status}`);
 }
 
 export const api = {
@@ -94,10 +104,10 @@ export const api = {
       get<{ budgets: BudgetRecord[] }>('/budgets', { owner }),
     create: (data: Partial<BudgetRecord>) =>
       post<BudgetRecord>('/budgets', data),
-    update: (id: number, data: Partial<BudgetRecord>) =>
+    update: (id: number, data: Partial<BudgetRecord> & { owner_address: string }) =>
       patch<BudgetRecord>('/budgets', data, { id: String(id) }),
-    delete: (id: number) =>
-      del('/budgets', { id: String(id) }),
+    delete: (id: number, ownerAddress: string) =>
+      del('/budgets', { id: String(id) }, { owner_address: ownerAddress }),
   },
   stats: (address: string) =>
     get<DashboardStats>('/stats', { address }),

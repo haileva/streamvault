@@ -15,6 +15,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { address } = req.query as Record<string, string>;
   if (!address) return res.status(400).json({ error: 'address required' });
+  const addrRegex = /^0x[0-9a-fA-F]{40}$/;
+  if (!addrRegex.test(address)) return res.status(400).json({ error: 'invalid address format' });
 
   const addr = address.toLowerCase();
 

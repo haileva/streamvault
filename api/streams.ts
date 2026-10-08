@@ -18,6 +18,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { address, role, status, category, limit = '50', offset = '0' } =
       req.query as Record<string, string>;
     if (!address) return res.status(400).json({ error: 'address required' });
+    const addrRegexQ = /^0x[0-9a-fA-F]{40}$/;
+    if (!addrRegexQ.test(address)) return res.status(400).json({ error: 'invalid address format' });
 
     const conditions: string[] = [];
     const params: unknown[] = [address.toLowerCase()];
@@ -29,8 +31,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (status)   { params.push(status);   conditions.push(`status = $${params.length}`);   }
     if (category) { params.push(category); conditions.push(`category = $${params.length}`); }
 
-    const lim = Math.min(Number(limit), 200);
-    const off = Math.max(Number(offset), 0);
+    // Coerce to integer to prevent SQL injection via type confusion
+    const lim = Math.min(Math.max(0, Math.floor(Number(limit) || 50)), 200);
+    const off = Math.max(0, Math.floor(Number(offset) || 0));
     params.push(lim);
     params.push(off);
 
