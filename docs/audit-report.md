@@ -635,3 +635,60 @@ Charts of total USDC sent per month by category, top recipients, stream completi
 ---
 
 *This report is read-only analysis. No code, database, or configuration changes were made. All items above are proposals for human review and decision.*
+
+---
+
+## 13. FOLLOW-ON SCAN PASS — Oct 7, 2026
+
+Second systematic scan covering every source file, config, and dependency. **All actionable items fixed in commit `2f7e5a4`.**
+
+### 13.1 Functional Fixes
+
+| ID | File | Finding | Fix |
+|---|---|---|---|
+| F1 | `src/lib/api.ts` | `del()` silently swallowed HTTP errors — `DELETE` that returned 4xx/5xx was treated as success | Added `!res.ok && status !== 204` guard; throws with status code |
+| F2 | `src/lib/api.ts` | `v &&` param filter dropped `'0'`, `'false'`, and other falsy-but-valid values | Changed to `v !== undefined && v !== null` |
+| F3 | `src/lib/utils.ts` | `formatUSDC()` passed negative bigint (stale liveBalance during tx) would compute wrong unsigned value | Clamps to `0n` with `abs = n < 0n ? 0n : n` |
+| F4 | `src/lib/utils.ts` | `formatDuration()` returned `''` (empty) for intervals < 60 seconds | Added `s` branch: returns `'<N>s'` when `m === 0` |
+
+### 13.2 Security Fixes
+
+| ID | File | Finding | Fix |
+|---|---|---|---|
+| S1 | `api/streams.ts`, `api/budgets.ts`, `api/stats.ts` | `limit`, `offset`, `id` from query string injected raw as SQL params — no integer coercion | `Math.floor(Number(...) \|\| default)` before SQL; address validated with `/^0x[0-9a-fA-F]{40}$/` |
+| S3 | `api/budgets.ts` | `PATCH /budgets` allowed any caller to update any budget row by id — no ownership check | Query now requires `owner_address = $N` in WHERE clause; request body must supply `owner_address` |
+| S4 | `api/budgets.ts` | `DELETE /budgets` same — any caller could delete any row | Same fix: `WHERE id = $1 AND owner_address = $2`; responds 404 on mismatch |
+
+### 13.3 Quality / Maintenance Fixes
+
+| ID | File | Finding | Fix |
+|---|---|---|---|
+| Q1 | `src/lib/contract.ts` | `setStreamVaultAddress()` export was dead code post-deploy hardcoding | Removed the function; replaced with a comment |
+| Q2 | `package.json` | `@types/cors` and `@types/express` were in `dependencies` not `devDependencies` — shipped to production bundle unnecessarily | Moved to `devDependencies` |
+| Q3 | `src/views/Settings.tsx` | `useAccount` and `useReadContract` imported on two separate `import { ... } from 'wagmi'` lines | Merged to single import statement |
+| Q4 | `src/views/Settings.tsx` | `owner_address` for budget create used raw `address` (may be mixed-case) | Normalised to `address.toLowerCase()` for create and delete |
+
+### 13.4 npm Audit Remediation (this pass)
+
+3 new transitive vulnerabilities patched via `overrides`:
+
+| Package | Was | Now | Advisory |
+|---|---|---|---|
+| `postcss-selector-parser` | 6.1.4 | 7.1.6 | GHSA-rj75-hqrm-r3gf (moderate) |
+| `source-map-js` | 1.2.1 | 1.2.2 | GHSA-68fv-2mgg-jv7q (high) |
+| `pbkdf2` | 3.1.6 | 3.1.7 | GHSA-477h-4r7f-fvrx (moderate) |
+
+Remaining unfixable (2):
+
+| Package | Advisory | Reason |
+|---|---|---|
+| `braces <=3.0.3` | GHSA-vfj7-8cjw-p6xm (high) | `braces@3.0.3` **is** the latest version — advisory is open but no patch released |
+| `elliptic <=6.6.1` | GHSA-848j-6mx2-7j84 (low) | No patched version upstream; tracked from previous session |
+
+### 13.5 Items Deferred (unchanged from §11)
+
+- No authentication on `/api/*` endpoints — all read/write remains public
+- On-chain indexer not implemented — DB diverges from chain after external transactions
+- No test suite configured
+- `StudioWatermark` declared but unused in `main.tsx` (scaffold artifact, pre-existing)
+
